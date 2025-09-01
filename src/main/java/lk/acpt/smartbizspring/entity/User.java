@@ -17,14 +17,17 @@ public class User {
     private String role;
     private String address;
     private String email;
+    // Store only filename or path of uploaded profile picture
+    private String profilePic;
 
     @OneToOne(mappedBy = "user")
     private Register register;
 
-    public User(String name, String role, String address, String email) {
+    public User(String name, String role, String address, String email, String profilePic) {
         this.name = name;
         this.role = role;
         this.address = address;
         this.email = email;
+        this.profilePic = profilePic;
     }
 }

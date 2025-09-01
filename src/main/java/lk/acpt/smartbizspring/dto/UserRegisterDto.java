@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Data
@@ -17,4 +18,6 @@ public class UserRegisterDto {
     private String email;
     private String username;
     private String password;
+    // For profile picture
+    private MultipartFile profilePic;
 }

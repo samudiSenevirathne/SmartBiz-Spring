@@ -1,29 +1,38 @@
 package lk.acpt.smartbizspring.controller;
 
+import lk.acpt.smartbizspring.dto.LoginResponseDto;
 import lk.acpt.smartbizspring.dto.RegisterDto;
 import lk.acpt.smartbizspring.dto.UserRegisterDto;
+import lk.acpt.smartbizspring.service.StorageService;
 import lk.acpt.smartbizspring.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/v1/user")
 public class UserController {
 
     private final UserService userService;
+    private final StorageService storageService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, StorageService storageService) {
         this.userService = userService;
+        this.storageService = storageService;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody UserRegisterDto userRegisterDto) {
-        boolean registered = userService.register(userRegisterDto);
+    @PostMapping(value = "/register", consumes = {"multipart/form-data"})
+    public ResponseEntity<String> registerUser(@ModelAttribute UserRegisterDto userRegisterDto) {
+        boolean registered = userService.register(userRegisterDto, userRegisterDto.getProfilePic());
         if (registered) {
             return ResponseEntity.ok("User registered successfully");
         } else {
@@ -32,12 +41,44 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> loginUser(@RequestBody RegisterDto registerDto) {
+    public ResponseEntity<?> loginUser(@RequestBody RegisterDto registerDto) {
         try {
-            String token = userService.login(registerDto);
-            return ResponseEntity.ok(token);
+            LoginResponseDto response = userService.login(registerDto);
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body(e.getMessage());
         }
     }
+
+    @GetMapping("/")
+    public ResponseEntity<List<String>> listUploadedFiles() throws IOException {
+        List<String> files = storageService.loadAll()
+                .map(path -> MvcUriComponentsBuilder
+                        .fromMethodName(UserController.class,
+                                "serveFile", path.getFileName().toString())
+                        .build()
+                        .toUri()
+                        .toString())
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(files);
+    }
+
+
+    @GetMapping("/{filename:.+}")
+    @ResponseBody
+    public ResponseEntity<Resource> serveFile(@PathVariable String filename) {
+        Resource file = storageService.loadAsResource(filename);
+        if (file == null) return ResponseEntity.notFound().build();
+
+        String contentType = "application/octet-stream";
+        try {
+            contentType = Files.probeContentType(file.getFile().toPath());
+        } catch (IOException ignored) {}
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, contentType)  // allows inline display
+                .body(file);
+    }
+
 }
