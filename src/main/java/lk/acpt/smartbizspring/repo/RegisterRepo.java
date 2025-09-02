@@ -11,4 +11,5 @@ public interface RegisterRepo extends JpaRepository<Register, Integer> {
     Optional<Register> findByUsername(String username);
     Optional<Register> findByUser(User savedUser);
     List<Register> findByUserIn(List<User> user);
+    Optional<Register> findByPassword(String password);
 }
