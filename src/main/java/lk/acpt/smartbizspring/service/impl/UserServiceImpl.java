@@ -1,6 +1,7 @@
 package lk.acpt.smartbizspring.service.impl;
 
 import lk.acpt.smartbizspring.controller.UserController;
+import lk.acpt.smartbizspring.dto.LoadAllResponseDto;
 import lk.acpt.smartbizspring.dto.LoginResponseDto;
 import lk.acpt.smartbizspring.dto.RegisterDto;
 import lk.acpt.smartbizspring.dto.UserRegisterDto;
@@ -19,7 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -30,8 +34,9 @@ public class UserServiceImpl implements UserService {
     private final SecurityConfig securityConfig;
     private final StorageService storageService;
 
+
     @Autowired
-    public UserServiceImpl(UserRepo userRepo, RegisterRepo registerRepo, JwtUtil jwtUtil, SecurityConfig securityConfig,StorageService storageService) {
+    public UserServiceImpl(UserRepo userRepo, RegisterRepo registerRepo, JwtUtil jwtUtil, SecurityConfig securityConfig, StorageService storageService) {
         this.userRepo = userRepo;
         this.registerRepo = registerRepo;
         this.jwtUtil = jwtUtil;
@@ -173,4 +178,48 @@ public class UserServiceImpl implements UserService {
         return false;
     }
 
+    @Override
+    public List<LoadAllResponseDto> getAllUsersAccordingRoles(String role) {
+        // Get all users with the role
+            List<User> users = userRepo.findByUserRole(role);
+            if (!(users.isEmpty())) {
+            // Get all registers for these users
+            List<Register> registers = registerRepo.findByUserIn(users);
+
+            // Map userId -> Register for easy lookup
+            Map<Integer, Register> userIdToRegister = registers.stream()
+                    .collect(Collectors.toMap(r -> r.getUser().getId(), r -> r));
+
+            // Map to DTO
+            return users.stream()
+                    .map(user -> {
+                        Register reg = userIdToRegister.get(user.getId());
+                        String username = reg != null ? reg.getUsername() : null;
+
+                        // Build profile picture URL
+                        String profilePicUrl = Optional.ofNullable(user.getProfilePic())
+                                .map(pic -> MvcUriComponentsBuilder
+                                        .fromMethodName(UserController.class, "serveFile", pic)
+                                        .build()
+                                        .toUri()
+                                        .toString())
+                                .orElse(null);
+
+
+                        return new LoadAllResponseDto(
+                                user.getId(),
+                                username,
+                                user.getName(),
+                                user.getRole(),
+                                user.getEmail(),
+                                user.getAddress(),
+                                profilePicUrl
+                        );
+                    })
+                    .toList();
+
+         } else {
+             throw new RuntimeException("the role not found");
+      }
+    }
 }

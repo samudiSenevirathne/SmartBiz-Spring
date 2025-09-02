@@ -1,5 +1,6 @@
 package lk.acpt.smartbizspring.controller;
 
+import lk.acpt.smartbizspring.dto.LoadAllResponseDto;
 import lk.acpt.smartbizspring.dto.LoginResponseDto;
 import lk.acpt.smartbizspring.dto.RegisterDto;
 import lk.acpt.smartbizspring.dto.UserRegisterDto;
@@ -102,6 +103,16 @@ public class UserController {
             return ResponseEntity.ok("User deleted successfully");
         } else {
             return ResponseEntity.badRequest().body("User deleted failed");
+        }
+    }
+
+    @GetMapping("/role/{role}")
+    public ResponseEntity<?>getAllUserAccordingRoles(@PathVariable String role) {
+        try {
+            List<LoadAllResponseDto> allUsersAccordingRoles = userService.getAllUsersAccordingRoles(role);
+            return ResponseEntity.ok(allUsersAccordingRoles);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(e.getMessage());
         }
     }
 }
