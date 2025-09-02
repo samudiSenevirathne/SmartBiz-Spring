@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 @AllArgsConstructor
 @ToString
 public class UserRegisterDto {
+    private int id;
     private String name;
     private String role;
     private String address;
@@ -20,4 +21,5 @@ public class UserRegisterDto {
     private String password;
     // For profile picture
     private MultipartFile profilePic;
+
 }
