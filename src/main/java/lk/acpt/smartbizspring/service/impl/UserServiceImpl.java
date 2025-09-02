@@ -100,6 +100,7 @@ public class UserServiceImpl implements UserService {
                 return new LoginResponseDto(
                         token,
                         register.getUsername(),
+                        registerDto.getPassword(),
                         user.getName(),
                         user.getRole(),
                         user.getEmail(),
@@ -112,6 +113,64 @@ public class UserServiceImpl implements UserService {
         } else {
             throw new RuntimeException("User not found");
         }
+    }
+
+    @Override
+    @Transactional
+    public boolean updateUser(UserRegisterDto userRegisterDto,MultipartFile profilePic) {
+        Optional<User> byId = userRepo.findById(userRegisterDto.getId());
+        if (byId.isPresent()) {
+            User user = byId.get();
+            try {
+                String fileName = user.getProfilePic();
+                if (profilePic != null && !profilePic.isEmpty()) {
+                    fileName = storageService.store(profilePic);
+                    user.setProfilePic(fileName);
+                }
+                user.setName(userRegisterDto.getName());
+                user.setRole(userRegisterDto.getRole());
+                user.setAddress(userRegisterDto.getAddress());
+                user.setEmail(userRegisterDto.getEmail());
+
+                User updatedUser = userRepo.save(user);
+
+                Optional<Register> registerOpt = registerRepo.findByUser(updatedUser);
+                if (registerOpt.isEmpty()) {
+                    throw new RuntimeException("Register entry not found for user id: " + updatedUser.getId());
+                }
+                Register register = registerOpt.get();
+                register.setUsername(userRegisterDto.getUsername());
+
+                if (userRegisterDto.getPassword() != null && !userRegisterDto.getPassword().isEmpty()) {
+                    String encodedPassword = securityConfig.passwordEncoder().encode(userRegisterDto.getPassword());
+                    register.setPassword(encodedPassword);
+                }
+
+                Register updatedRegister = registerRepo.save(register);
+                return updatedRegister != null;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteUser(Integer id) {
+        Optional<User> byId = userRepo.findById(id);
+        if (byId.isPresent()) {
+            User user = byId.get();
+
+            Register register = registerRepo.findByUser(user).orElse(null);
+            if (register != null) {
+                registerRepo.delete(register);
+            }
+
+            userRepo.deleteById(user.getId());
+            return true;
+        }
+        return false;
     }
 
 }

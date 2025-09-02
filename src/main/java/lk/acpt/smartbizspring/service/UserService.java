@@ -10,4 +10,6 @@ import org.springframework.web.multipart.MultipartFile;
 public interface UserService {
     boolean register(UserRegisterDto userRegisterDto, MultipartFile profilePic);
     LoginResponseDto login(RegisterDto registerDto);
+    boolean updateUser(UserRegisterDto userRegisterDto, MultipartFile profilePic);
+    boolean deleteUser (Integer id);
 }

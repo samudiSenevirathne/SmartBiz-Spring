@@ -8,6 +8,7 @@ import lk.acpt.smartbizspring.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
@@ -81,4 +82,26 @@ public class UserController {
                 .body(file);
     }
 
+
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    public ResponseEntity<Object> registerUser(@PathVariable Integer id,@ModelAttribute UserRegisterDto userRegisterDto) {
+        userRegisterDto.setId(id);
+        boolean updatedUser = userService.updateUser(userRegisterDto, userRegisterDto.getProfilePic());
+        if (updatedUser) {
+            return ResponseEntity.ok("User updated successfully");
+        } else {
+            return ResponseEntity.badRequest().body("User updated failed");
+        }
+    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String>deleteUser(@PathVariable Integer id) {
+        boolean deletedUser = userService.deleteUser(id);
+        if (deletedUser) {
+            return ResponseEntity.ok("User deleted successfully");
+        } else {
+            return ResponseEntity.badRequest().body("User deleted failed");
+        }
+    }
 }
