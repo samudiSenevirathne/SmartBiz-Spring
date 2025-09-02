@@ -7,6 +7,8 @@ import lk.acpt.smartbizspring.dto.RegisterDto;
 import lk.acpt.smartbizspring.dto.UserRegisterDto;
 import lk.acpt.smartbizspring.entity.Register;
 import lk.acpt.smartbizspring.entity.User;
+import lk.acpt.smartbizspring.exception.PasswordAlreadyExistsException;
+import lk.acpt.smartbizspring.exception.UsernameAlreadyExistsException;
 import lk.acpt.smartbizspring.repo.RegisterRepo;
 import lk.acpt.smartbizspring.repo.UserRepo;
 import lk.acpt.smartbizspring.service.StorageService;
@@ -47,32 +49,47 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public boolean register(UserRegisterDto ur, MultipartFile profilePic) {
-        try {
-            String fileName = null;
-            if (profilePic != null && !profilePic.isEmpty()) {
-                fileName = storageService.store(profilePic);
-            }
-            User user = new User(
-                    ur.getName(),
-                    ur.getRole(),
-                    ur.getAddress(),
-                    ur.getEmail(),
-                    fileName
-            );
-            User savedUser=userRepo.save(user);
-            System.out.println(ur);
-            String encodedPassword = securityConfig.passwordEncoder().encode(ur.getPassword());
-            ur.setPassword(encodedPassword);
-            Register registerr = new Register(
-                    ur.getUsername(),
-                    encodedPassword,
-                    savedUser
-            );
-            Register savedRegister = registerRepo.save(registerr);
-            return savedRegister != null;
-        } catch (Exception e) {
-            return false;
+        // Check username exists
+        if (registerRepo.findByUsername(ur.getUsername()).isPresent()) {
+            throw new UsernameAlreadyExistsException("The username is already in use");
         }
+
+        // Check password reuse (optional, usually not recommended)
+        List<Register> allRegisters = registerRepo.findAll();
+        for (Register r : allRegisters) {
+            if (securityConfig.passwordEncoder().matches(ur.getPassword(), r.getPassword())) {
+                throw new PasswordAlreadyExistsException("The password is already in use");
+            }
+        }
+
+        // Store profile pic
+        String fileName = null;
+        if (profilePic != null && !profilePic.isEmpty()) {
+            fileName = storageService.store(profilePic);
+        }
+
+        // Save User
+        User user = new User(
+                ur.getName(),
+                ur.getRole(),
+                ur.getAddress(),
+                ur.getEmail(),
+                fileName
+        );
+        User savedUser = userRepo.save(user);
+
+        // Encode password
+        String encodedPassword = securityConfig.passwordEncoder().encode(ur.getPassword());
+
+        // Save Register
+        Register register = new Register(
+                ur.getUsername(),
+                encodedPassword,
+                savedUser
+        );
+        Register savedRegister = registerRepo.save(register);
+
+        return savedRegister != null;
     }
 
 

@@ -4,6 +4,8 @@ import lk.acpt.smartbizspring.dto.LoadAllResponseDto;
 import lk.acpt.smartbizspring.dto.LoginResponseDto;
 import lk.acpt.smartbizspring.dto.RegisterDto;
 import lk.acpt.smartbizspring.dto.UserRegisterDto;
+import lk.acpt.smartbizspring.exception.PasswordAlreadyExistsException;
+import lk.acpt.smartbizspring.exception.UsernameAlreadyExistsException;
 import lk.acpt.smartbizspring.service.StorageService;
 import lk.acpt.smartbizspring.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,11 +36,18 @@ public class UserController {
 
     @PostMapping(value = "/register", consumes = {"multipart/form-data"})
     public ResponseEntity<String> registerUser(@ModelAttribute UserRegisterDto userRegisterDto) {
-        boolean registered = userService.register(userRegisterDto, userRegisterDto.getProfilePic());
-        if (registered) {
+        try {
+            userService.register(userRegisterDto, userRegisterDto.getProfilePic());
             return ResponseEntity.ok("User registered successfully");
-        } else {
-            return ResponseEntity.badRequest().body("User registration failed");
+
+        } catch (UsernameAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+
+        } catch (PasswordAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("User registration failed");
         }
     }
 
