@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local config files (DB passwords, JWT secrets, email creds)
+application.properties
+application.yml
+application-secret.properties
+.env
