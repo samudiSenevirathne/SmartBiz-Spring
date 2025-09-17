@@ -37,3 +37,6 @@ application.properties
 application.yml
 application-secret.properties
 .env
+
+#photo folder
+upload-dir/
